@@ -1,0 +1,10 @@
+.idea/
+.vscode/
+.DS_Store
+target/
+build/
+.env
+.env.*
+!.env.example
+*.log
+coverage/

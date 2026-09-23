@@ -1,0 +1,25 @@
+name: Funcionalidade
+description: Planejar uma regra financeira verificável
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema
+      description: Qual regra ou risco será tratado?
+    validations:
+      required: true
+  - type: textarea
+    id: invariants
+    attributes:
+      label: Invariantes afetadas
+      description: Quais condições devem permanecer verdadeiras?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critérios de aceite
+    validations:
+      required: true
