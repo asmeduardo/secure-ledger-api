@@ -55,7 +55,7 @@ Consulte [a arquitetura](docs/architecture.md) e [o roadmap](docs/roadmap.md).
 - REST Assured para contratos HTTP;
 - ArchUnit para fronteiras de módulos;
 - Docker Compose;
-- OpenAPI;
+- OpenAPI e Swagger UI como interface navegável da API;
 - GitHub Actions.
 
 ## Invariantes principais
@@ -91,6 +91,10 @@ Os comandos serão incluídos junto da primeira versão executável. O repositó
 5. OAuth 2.0/OIDC e autorização;
 6. auditoria, reconciliação e observabilidade;
 7. Docker, CI e demonstração publicada.
+
+## Demonstração para avaliação técnica
+
+Como este é um produto API-first, a versão executável deverá expor Swagger UI com dados fictícios e um roteiro curto no README. Um avaliador poderá autenticar-se com uma conta de demonstração, criar uma operação idempotente, repetir a mesma requisição para confirmar a proteção contra duplicidade e consultar a trilha de auditoria. O ambiente publicado usará somente dados descartáveis e limites seguros.
 
 ## Documentação
 

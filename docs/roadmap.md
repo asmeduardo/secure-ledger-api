@@ -12,7 +12,7 @@
 - [ ] configurar PostgreSQL e Flyway;
 - [ ] persistir transações e lançamentos atomicamente;
 - [ ] criar API REST com DTOs e `ProblemDetail`;
-- [ ] documentar contratos com OpenAPI;
+- [ ] documentar contratos com OpenAPI e publicar Swagger UI;
 - [ ] testar o banco com Testcontainers.
 
 ## Fase 3 — confiabilidade
@@ -30,4 +30,4 @@
 - [ ] adicionar métricas e logs estruturados;
 - [ ] criar Docker Compose;
 - [ ] configurar CI, análise estática e auditoria de dependências;
-- [ ] publicar a demonstração e a documentação de uso.
+- [ ] publicar a demonstração com dados descartáveis e um roteiro de avaliação de poucos minutos.
