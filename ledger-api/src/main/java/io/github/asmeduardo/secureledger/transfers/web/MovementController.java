@@ -112,6 +112,32 @@ public class MovementController {
         return movements.get(ClientId.of(client), id);
     }
 
+    @PostMapping("/transactions/{id}/reversal")
+    @Operation(
+            summary = "Reverse a transaction",
+            description = "Posts the opposite entries; posted entries are never changed. "
+                    + "A transaction is reversed at most once and a reversal cannot be reversed.")
+    @ApiResponse(responseCode = "201", description = "Reversal posted")
+    @ApiResponse(
+            responseCode = "409",
+            description = "Transaction already reversed",
+            content = @Content(mediaType = Problems.MEDIA_TYPE))
+    @ApiResponse(
+            responseCode = "422",
+            description = "Reversal not allowed or it would overdraw an account",
+            content = @Content(mediaType = Problems.MEDIA_TYPE))
+    public ResponseEntity<TransactionView> reverse(
+            @Parameter(description = IdempotentResponses.KEY_DESCRIPTION)
+                    @RequestHeader(IdempotentResponses.KEY_HEADER)
+                    @Pattern(regexp = IdempotentResponses.KEY_PATTERN, message = IdempotentResponses.KEY_MESSAGE)
+                    String idempotencyKey,
+            @PathVariable UUID id,
+            @Valid @RequestBody(required = false) ReversalRequest request,
+            @AuthenticationPrincipal Jwt client) {
+        var reference = request == null ? null : request.reference();
+        return created(movements.reverse(ClientId.of(client), idempotencyKey, id, reference));
+    }
+
     private static ResponseEntity<TransactionView> created(IdempotentResult<TransactionView> result) {
         return IdempotentResponses.created(
                 URI.create("/api/v1/transactions/" + result.response().id()), result);

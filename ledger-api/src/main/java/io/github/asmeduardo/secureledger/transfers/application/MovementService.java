@@ -2,6 +2,7 @@ package io.github.asmeduardo.secureledger.transfers.application;
 
 import io.github.asmeduardo.secureledger.accounts.api.OwnedAccounts;
 import io.github.asmeduardo.secureledger.ledger.api.Ledger;
+import io.github.asmeduardo.secureledger.ledger.api.PostedEntry;
 import io.github.asmeduardo.secureledger.ledger.api.TransactionNotFoundException;
 import io.github.asmeduardo.secureledger.shared.idempotency.Idempotency;
 import io.github.asmeduardo.secureledger.shared.idempotency.IdempotentRequest;
@@ -56,6 +57,27 @@ public class MovementService {
             ownedAccounts.requireOwnedBy(client, sourceId);
             ownedAccounts.requireOwnedBy(client, destinationId);
             return TransactionView.of(ledger.transfer(sourceId, destinationId, amount, client.value(), reference));
+        });
+    }
+
+    /**
+     * Corrects a transaction by posting its opposite entries. Only the client that owns every customer
+     * account of the transaction may reverse it; anyone else is told the transaction does not exist.
+     */
+    public IdempotentResult<TransactionView> reverse(
+            ClientId client, String key, UUID transactionId, String reference) {
+        var request = IdempotentRequest.of(client, key, "REVERSAL", transactionId, reference);
+        return idempotency.execute(request, TransactionView.class, () -> {
+            var original =
+                    ledger.find(transactionId).orElseThrow(() -> new TransactionNotFoundException(transactionId));
+            var customerAccounts = original.entries().stream()
+                    .filter(entry -> entry.balanceAfter().isPresent())
+                    .map(PostedEntry::accountId)
+                    .toList();
+            if (!ownedAccounts.ownedAmong(client, customerAccounts).containsAll(customerAccounts)) {
+                throw new TransactionNotFoundException(transactionId);
+            }
+            return TransactionView.of(ledger.reverse(transactionId, client.value(), reference));
         });
     }
 
