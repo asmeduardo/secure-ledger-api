@@ -7,6 +7,7 @@ import io.github.asmeduardo.secureledger.ledger.api.PostedTransaction;
 import io.github.asmeduardo.secureledger.ledger.api.StatementLine;
 import io.github.asmeduardo.secureledger.ledger.api.TransactionKind;
 import io.github.asmeduardo.secureledger.ledger.api.TransactionNotFoundException;
+import io.github.asmeduardo.secureledger.ledger.domain.Entry;
 import io.github.asmeduardo.secureledger.ledger.domain.EntryRepository;
 import io.github.asmeduardo.secureledger.ledger.domain.LedgerAccount;
 import io.github.asmeduardo.secureledger.ledger.domain.LedgerAccountRepository;
@@ -17,6 +18,7 @@ import io.github.asmeduardo.secureledger.ledger.domain.TransactionType;
 import io.github.asmeduardo.secureledger.shared.money.InvalidAmountException;
 import io.github.asmeduardo.secureledger.shared.money.Money;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Currency;
 import java.util.HashMap;
@@ -120,15 +122,35 @@ class LedgerService implements Ledger {
     @Transactional(readOnly = true)
     public List<StatementLine> statement(UUID accountId, long beforeEntryId, int limit) {
         return entries.statementPage(accountId, beforeEntryId, Limit.of(limit)).stream()
-                .map(entry -> new StatementLine(
-                        entry.getId(),
-                        entry.getTransaction().getId(),
-                        TransactionKind.valueOf(entry.getTransaction().getType().name()),
-                        entry.amount(),
-                        entry.balanceAfter().orElse(null),
-                        entry.getTransaction().getReference().orElse(null),
-                        entry.getCreatedAt()))
+                .map(LedgerService::line)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StatementLine> statementBetween(
+            UUID accountId, Instant from, Instant to, long afterEntryId, long upToEntryId, int limit) {
+        return entries.periodPage(accountId, from, to, afterEntryId, upToEntryId, Limit.of(limit)).stream()
+                .map(LedgerService::line)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long latestEntryId(UUID accountId) {
+        return entries.latestEntryId(accountId);
+    }
+
+    private static StatementLine line(Entry entry) {
+        var transaction = entry.getTransaction();
+        return new StatementLine(
+                entry.getId(),
+                transaction.getId(),
+                TransactionKind.valueOf(transaction.getType().name()),
+                entry.amount(),
+                entry.balanceAfter().orElse(null),
+                transaction.getReference().orElse(null),
+                entry.getCreatedAt());
     }
 
     private PostedTransaction post(TransactionType type, List<Leg> legs, String initiatedBy, String reference) {

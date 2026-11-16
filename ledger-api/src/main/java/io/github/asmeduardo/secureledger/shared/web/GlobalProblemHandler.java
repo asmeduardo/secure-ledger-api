@@ -22,6 +22,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.validation.method.ParameterErrors;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -93,6 +94,16 @@ class GlobalProblemHandler extends ResponseEntityExceptionHandler {
                     .body(invalidRequest(List.of(fieldError(missing.getHeaderName(), "is required"))));
         }
         return ResponseEntity.badRequest().body(invalidRequest(List.of()));
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleMissingServletRequestParameter(
+            MissingServletRequestParameterException exception,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        return ResponseEntity.badRequest()
+                .body(invalidRequest(List.of(fieldError(exception.getParameterName(), "is required"))));
     }
 
     @Override

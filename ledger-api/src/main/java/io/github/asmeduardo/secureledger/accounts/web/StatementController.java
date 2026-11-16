@@ -10,9 +10,17 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.UUID;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -53,5 +61,40 @@ public class StatementController {
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit,
             @AuthenticationPrincipal Jwt client) {
         return statements.page(ClientId.of(client), id, cursor, limit);
+    }
+
+    @GetMapping(value = "/statement.csv", produces = "text/csv")
+    @Operation(
+            summary = "Export the statement of a period as CSV",
+            description = "Entries posted in [from, to), oldest first, at most 366 days. RFC 4180 with a "
+                    + "header line; text cells that a spreadsheet would run as formulas are prefixed with '.")
+    @ApiResponse(
+            responseCode = "400",
+            description = "Missing or invalid period",
+            content = @Content(mediaType = Problems.MEDIA_TYPE))
+    public void export(
+            @PathVariable UUID id,
+            @Parameter(description = "First instant included, ISO-8601 UTC") @RequestParam Instant from,
+            @Parameter(description = "First instant excluded, ISO-8601 UTC") @RequestParam Instant to,
+            @AuthenticationPrincipal Jwt client,
+            HttpServletResponse response)
+            throws IOException {
+        var export = statements.export(ClientId.of(client), id, from, to);
+        response.setContentType("text/csv");
+        response.setCharacterEncoding(StandardCharsets.UTF_8);
+        response.setHeader(
+                HttpHeaders.CONTENT_DISPOSITION,
+                ContentDisposition.attachment()
+                        .filename("statement-%s-%s-%s.csv".formatted(id, day(from), day(to)))
+                        .build()
+                        .toString());
+        var csv = new StatementCsv(response.getWriter());
+        csv.header();
+        export.forEach(csv::line);
+        response.getWriter().flush();
+    }
+
+    private static LocalDate day(Instant instant) {
+        return LocalDate.ofInstant(instant, ZoneOffset.UTC);
     }
 }
