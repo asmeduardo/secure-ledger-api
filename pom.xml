@@ -20,6 +20,7 @@
 
   <modules>
     <module>ledger-api</module>
+    <module>dev-auth-server</module>
   </modules>
 
   <properties>
