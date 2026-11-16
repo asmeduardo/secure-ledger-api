@@ -39,4 +39,16 @@ class CursorTest {
         assertThat(last.items()).containsExactly(6L);
         assertThat(last.nextCursor()).isNull();
     }
+
+    @Test
+    void readsOneRowMoreThanThePageToKnowWhetherAnotherPageExists() {
+        assertThat(CursorPage.rowsToRead(1)).isEqualTo(2);
+        assertThat(CursorPage.rowsToRead(CursorPage.MAX_LIMIT)).isEqualTo(101);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, -1, 101, Integer.MAX_VALUE})
+    void refusesALimitOutsideTheContractEvenWhenTheCallerSkippedValidation(int limit) {
+        assertThatThrownBy(() -> CursorPage.rowsToRead(limit)).isInstanceOf(IllegalArgumentException.class);
+    }
 }

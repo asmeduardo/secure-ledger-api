@@ -30,7 +30,7 @@ class DoubleEntryPropertiesTest {
     void everyBalancedTransactionIsPostedAndMovesEachBalanceByItsLeg() {
         for (long seed = BASE_SEED; seed < BASE_SEED + CASES; seed++) {
             var random = new SplittableRandom(seed);
-            var accounts = fundedAccounts(random, 2 + random.nextInt(5), "1000000.00");
+            var accounts = fundedAccounts(2 + random.nextInt(5), "1000000.00");
             var before = balances(accounts);
             var legs = balancedLegs(random, accounts);
 
@@ -54,7 +54,7 @@ class DoubleEntryPropertiesTest {
     void anyImbalanceIsRejectedAndChangesNoBalance() {
         for (long seed = BASE_SEED; seed < BASE_SEED + CASES; seed++) {
             var random = new SplittableRandom(seed);
-            var accounts = fundedAccounts(random, 2 + random.nextInt(5), "1000000.00");
+            var accounts = fundedAccounts(2 + random.nextInt(5), "1000000.00");
             var before = balances(accounts);
             var legs = new ArrayList<>(balancedLegs(random, accounts));
             int victim = random.nextInt(legs.size());
@@ -76,7 +76,7 @@ class DoubleEntryPropertiesTest {
     void aReversalUndoesTheEffectOfAnyTransaction() {
         for (long seed = BASE_SEED; seed < BASE_SEED + CASES; seed++) {
             var random = new SplittableRandom(seed);
-            var accounts = fundedAccounts(random, 2 + random.nextInt(5), "1000000.00");
+            var accounts = fundedAccounts(2 + random.nextInt(5), "1000000.00");
             var before = balances(accounts);
             var original = post(balancedLegs(random, accounts), accounts);
 
@@ -96,7 +96,7 @@ class DoubleEntryPropertiesTest {
     void noSequenceOfPostingsLeavesACustomerBalanceNegative() {
         for (long seed = BASE_SEED; seed < BASE_SEED + CASES; seed++) {
             var random = new SplittableRandom(seed);
-            var accounts = fundedAccounts(random, 3, "50.00");
+            var accounts = fundedAccounts(3, "50.00");
             for (int step = 0; step < 20; step++) {
                 var before = balances(accounts);
                 var legs = balancedLegs(random, accounts);
@@ -124,7 +124,7 @@ class DoubleEntryPropertiesTest {
     }
 
     /** Customer accounts that already hold the given amount, credited from a settlement account. */
-    private static Map<UUID, LedgerAccount> fundedAccounts(SplittableRandom random, int count, String funds) {
+    private static Map<UUID, LedgerAccount> fundedAccounts(int count, String funds) {
         var brl = Money.currency("BRL");
         var settlement = LedgerAccount.settlementAccount(UUID.randomUUID(), brl, NOW);
         var accounts = new HashMap<UUID, LedgerAccount>();

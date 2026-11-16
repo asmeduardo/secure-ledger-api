@@ -39,7 +39,7 @@ public class AuditService implements AuditTrail {
     }
 
     private CursorPage<AuditEventView> page(String actor, String cursor, int limit) {
-        var rows = events.page(actor, Cursor.decode(cursor), limit + 1);
+        var rows = events.page(actor, Cursor.decode(cursor), CursorPage.rowsToRead(limit));
         return CursorPage.of(rows, limit, AuditEventView::id);
     }
 }

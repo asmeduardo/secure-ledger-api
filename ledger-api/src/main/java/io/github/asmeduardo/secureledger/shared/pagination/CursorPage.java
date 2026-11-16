@@ -11,8 +11,23 @@ import java.util.function.ToLongFunction;
  */
 public record CursorPage<T>(List<T> items, String nextCursor) {
 
+    /** Largest page the API serves. */
+    public static final int MAX_LIMIT = 100;
+
     public CursorPage {
         items = List.copyOf(items);
+    }
+
+    /**
+     * Rows to read for a page of {@code limit} items: one more, which only tells whether another page
+     * exists. The limit is checked here too, so a caller that skipped the HTTP validation cannot ask
+     * for an unbounded page.
+     */
+    public static int rowsToRead(int limit) {
+        if (limit < 1 || limit > MAX_LIMIT) {
+            throw new IllegalArgumentException("A page holds between 1 and " + MAX_LIMIT + " items");
+        }
+        return limit + 1;
     }
 
     /**

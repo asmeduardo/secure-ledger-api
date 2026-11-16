@@ -58,7 +58,7 @@ public class StatementController {
             @Parameter(description = "nextCursor of the previous page; omit for the newest entries")
                     @RequestParam(required = false)
                     String cursor,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(CursorPage.MAX_LIMIT) int limit,
             @AuthenticationPrincipal Jwt client) {
         return statements.page(ClientId.of(client), id, cursor, limit);
     }

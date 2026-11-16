@@ -20,7 +20,7 @@ API de razão financeira com partidas dobradas para plataformas que movimentam c
 - **Auditoria e reconciliação:** o evento de sucesso é gravado na mesma transação do efeito; repetições e recusas também ficam registradas com o motivo. A reconciliação (sob demanda e diária) compara saldos materializados e transações com os lançamentos, e o teste injeta divergências direto no banco, uma delas com os triggers desligados ([ADR 0008](docs/adr/0008-auditoria-append-only-e-reconciliacao.md)).
 - **Extrato estável:** paginação por cursor que não repete nem pula linhas quando chegam lançamentos novos; exportação CSV RFC 4180 de até 366 dias, em páginas curtas, com neutralização de células que pareçam fórmulas ([ADR 0009](docs/adr/0009-extrato-por-cursor-e-exportacao-csv.md)).
 - **Operação:** health e métricas Prometheus (`ledger_operations_total`, `ledger_reconciliation_divergences`), log estruturado ECS no Compose e containers sem root, com sistema de arquivos somente leitura e sem capabilities.
-- **Qualidade verificável:** 67 testes unitários (10 deles regras ArchUnit) e 114 de integração com PostgreSQL real via Testcontainers; CI com Spotless, testes e build das imagens, além de CodeQL, dependency review e Dependabot.
+- **Qualidade verificável:** 72 testes unitários (10 deles regras ArchUnit) e 114 de integração com PostgreSQL real via Testcontainers; CI com Spotless, testes e build das imagens, além de CodeQL, dependency review e Dependabot.
 
 ## Arquitetura
 
@@ -118,12 +118,12 @@ Para encerrar e apagar os dados: `docker compose down -v`. Se a porta 5432 ou 80
 ./mvnw verify
 ```
 
-É o mesmo comando do CI e exige o Docker em execução. Ele verifica a formatação (Spotless) e roda 67 testes unitários e 114 de integração:
+É o mesmo comando do CI e exige o Docker em execução. Ele verifica a formatação (Spotless) e roda 72 testes unitários e 114 de integração:
 
 | Camada | O que comprova | Quantidade |
 | --- | --- | ---: |
 | Domínio (unitários) | `Money` (escala da moeda, sem arredondar, moedas aceitas), saldo nunca negativo, partidas dobradas, estorno e 4 propriedades com 500 casos aleatórios cada | 37 |
-| Aplicação (unitários e Mockito) | fluxo da idempotência (repetição, chave reutilizada, corrida perdida), impressão digital da requisição, cursor e paginação da exportação | 20 |
+| Aplicação (unitários e Mockito) | fluxo da idempotência (repetição, chave reutilizada, corrida perdida), impressão digital da requisição, cursor, limite de página e paginação da exportação | 25 |
 | Arquitetura (ArchUnit) | fronteiras entre módulos, camadas, ausência de ciclos e nenhum `BigDecimal` criado de `double` | 10 |
 | Banco (Testcontainers) | constraints, soma zero e mínimo de dois lançamentos no commit, lançamento tardio, `UPDATE`/`DELETE`/`TRUNCATE` recusados | 17 |
 | Razão e concorrência | lançamentos atômicos, saldo e estorno no serviço; débitos simultâneos, transferências cruzadas e liquidação compartilhada | 10 |

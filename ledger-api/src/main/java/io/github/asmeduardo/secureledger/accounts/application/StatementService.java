@@ -32,7 +32,7 @@ public class StatementService {
     @Transactional(readOnly = true)
     public CursorPage<StatementLineView> page(ClientId client, UUID accountId, String cursor, int limit) {
         ownedAccounts.requireOwnedBy(client, accountId);
-        var rows = ledger.statement(accountId, Cursor.decode(cursor), limit + 1).stream()
+        var rows = ledger.statement(accountId, Cursor.decode(cursor), CursorPage.rowsToRead(limit)).stream()
                 .map(StatementLineView::of)
                 .toList();
         return CursorPage.of(rows, limit, StatementLineView::entryId);

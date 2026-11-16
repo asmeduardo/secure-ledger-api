@@ -33,7 +33,7 @@ public class AuditController {
     @Operation(summary = "Audit events of the calling client, newest first")
     public CursorPage<AuditEventView> ownEvents(
             @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(CursorPage.MAX_LIMIT) int limit,
             @AuthenticationPrincipal Jwt client) {
         return audit.ownEvents(ClientId.of(client), cursor, limit);
     }
@@ -43,7 +43,7 @@ public class AuditController {
     public CursorPage<AuditEventView> allEvents(
             @RequestParam(required = false) @Size(max = 100) String actor,
             @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit) {
+            @RequestParam(defaultValue = "20") @Min(1) @Max(CursorPage.MAX_LIMIT) int limit) {
         return audit.allEvents(actor, cursor, limit);
     }
 }
