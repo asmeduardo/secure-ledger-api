@@ -22,6 +22,8 @@ class SecurityConfiguration {
         http.authorizeHttpRequests(requests -> requests.requestMatchers(
                                 "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/error")
                         .permitAll()
+                        .requestMatchers("/api/v1/admin/**")
+                        .hasAuthority(Scopes.authority(Scopes.AUDIT))
                         .requestMatchers(HttpMethod.GET, "/api/**")
                         .hasAuthority(Scopes.authority(Scopes.READ))
                         .requestMatchers(HttpMethod.POST, "/api/**")

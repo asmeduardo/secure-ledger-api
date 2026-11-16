@@ -53,6 +53,14 @@ class ModuleBoundariesTest {
                     "..secureledger.accounts.web..");
 
     @ArchTest
+    static final ArchRule auditIsUsedOnlyThroughItsApi = noClasses()
+            .that()
+            .resideOutsideOfPackage("..secureledger.audit..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage("..secureledger.audit.application..", "..secureledger.audit.web..");
+
+    @ArchTest
     static final ArchRule sharedHoldsNoBusinessModuleCode = noClasses()
             .that()
             .resideInAPackage("..secureledger.shared..")

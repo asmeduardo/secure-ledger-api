@@ -86,6 +86,16 @@ class ApiAuthorizationIT {
     }
 
     @Test
+    void theAuditScopeOpensTheBackOfficeAndNothingElse() {
+        var auditor = Tokens.client("back-office", Tokens.AUDIT);
+
+        assertThat(mvc.get().uri("/api/v1/admin/audit-events").with(auditor)).hasStatusOk();
+        assertThat(mvc.get().uri("/api/v1/accounts").with(auditor)).hasStatus(HttpStatus.FORBIDDEN);
+        assertThat(mvc.get().uri("/api/v1/admin/audit-events").with(Tokens.operator("anyone")))
+                .hasStatus(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
     void methodsOutsideTheContractAreDenied() {
         assertThat(mvc.delete().uri("/api/v1/accounts").with(Tokens.operator("anyone")))
                 .hasStatus(HttpStatus.FORBIDDEN);

@@ -4,8 +4,8 @@ import io.github.asmeduardo.secureledger.accounts.api.AccountNotFoundException;
 import io.github.asmeduardo.secureledger.accounts.api.OwnedAccounts;
 import io.github.asmeduardo.secureledger.accounts.domain.CustomerAccount;
 import io.github.asmeduardo.secureledger.accounts.domain.CustomerAccountRepository;
+import io.github.asmeduardo.secureledger.audit.api.AuditedWrites;
 import io.github.asmeduardo.secureledger.ledger.api.Ledger;
-import io.github.asmeduardo.secureledger.shared.idempotency.Idempotency;
 import io.github.asmeduardo.secureledger.shared.idempotency.IdempotentRequest;
 import io.github.asmeduardo.secureledger.shared.idempotency.IdempotentResult;
 import io.github.asmeduardo.secureledger.shared.money.Money;
@@ -28,23 +28,24 @@ public class AccountService implements OwnedAccounts {
 
     private final CustomerAccountRepository accounts;
     private final Ledger ledger;
-    private final Idempotency idempotency;
+    private final AuditedWrites writes;
     private final Clock clock;
 
-    public AccountService(CustomerAccountRepository accounts, Ledger ledger, Idempotency idempotency, Clock clock) {
+    public AccountService(CustomerAccountRepository accounts, Ledger ledger, AuditedWrites writes, Clock clock) {
         this.accounts = accounts;
         this.ledger = ledger;
-        this.idempotency = idempotency;
+        this.writes = writes;
         this.clock = clock;
     }
 
     /**
      * Opens an account owned by the client, with a zero balance in the given currency. Idempotent per
-     * client and key; the transaction is opened by {@link Idempotency}.
+     * client and key, and audited. The name is kept out of the audit trail: it is free text.
      */
     public IdempotentResult<AccountView> open(ClientId owner, String key, String name, String currencyCode) {
         var request = IdempotentRequest.of(owner, key, "OPEN_ACCOUNT", name, currencyCode);
-        return idempotency.execute(request, AccountView.class, () -> {
+        var details = Map.of("currency", currencyCode);
+        return writes.execute(request, AccountView.class, details, AccountView::id, () -> {
             var currency = Money.currency(currencyCode);
             var account = accounts.save(new CustomerAccount(UUID.randomUUID(), owner.value(), name, clock.instant()));
             ledger.openCustomerAccount(account.getId(), currency);
