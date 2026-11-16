@@ -22,6 +22,10 @@ class SecurityConfiguration {
         http.authorizeHttpRequests(requests -> requests.requestMatchers(
                                 "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/error")
                         .permitAll()
+                        // Health for orchestrators and metrics for the scraper; restrict them to the
+                        // internal network where the API is deployed behind a gateway.
+                        .requestMatchers("/actuator/health/**", "/actuator/prometheus")
+                        .permitAll()
                         .requestMatchers("/api/v1/admin/**")
                         .hasAuthority(Scopes.authority(Scopes.AUDIT))
                         .requestMatchers(HttpMethod.GET, "/api/**")

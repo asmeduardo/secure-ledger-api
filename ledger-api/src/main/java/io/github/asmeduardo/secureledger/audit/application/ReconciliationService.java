@@ -4,8 +4,11 @@ import io.github.asmeduardo.secureledger.audit.api.AuditOutcome;
 import io.github.asmeduardo.secureledger.audit.api.AuditRecord;
 import io.github.asmeduardo.secureledger.audit.api.AuditTrail;
 import io.github.asmeduardo.secureledger.ledger.api.LedgerIntegrity;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -23,17 +26,22 @@ public class ReconciliationService {
     private final LedgerIntegrity integrity;
     private final AuditTrail trail;
     private final Clock clock;
+    private final AtomicInteger lastDivergences = new AtomicInteger();
 
-    ReconciliationService(LedgerIntegrity integrity, AuditTrail trail, Clock clock) {
+    ReconciliationService(LedgerIntegrity integrity, AuditTrail trail, Clock clock, MeterRegistry meters) {
         this.integrity = integrity;
         this.trail = trail;
         this.clock = clock;
+        Gauge.builder("ledger.reconciliation.divergences", lastDivergences, AtomicInteger::get)
+                .description("Divergences found by the last reconciliation; anything above zero needs a person")
+                .register(meters);
     }
 
     public ReconciliationReport run(String actor) {
         var report = ReconciliationReport.of(integrity.check(), clock.instant());
         var divergences = report.balanceDivergences().size();
         var unbalanced = report.unbalancedTransactions().size();
+        lastDivergences.set(divergences + unbalanced);
         trail.record(new AuditRecord(
                 actor,
                 OPERATION,
