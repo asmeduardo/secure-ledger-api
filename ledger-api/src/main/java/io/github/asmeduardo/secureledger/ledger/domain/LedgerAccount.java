@@ -7,13 +7,17 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.PostLoad;
+import jakarta.persistence.PostPersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Currency;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Persistable;
 
 /**
  * Where entries are posted. A customer account keeps its balance on the row (a materialized sum of
@@ -23,7 +27,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "ledger_account", schema = "ledger")
-public class LedgerAccount {
+public class LedgerAccount implements Persistable<UUID> {
 
     @Id
     private UUID id;
@@ -40,6 +44,9 @@ public class LedgerAccount {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    @Transient
+    private boolean persisted;
 
     protected LedgerAccount() {}
 
@@ -107,8 +114,21 @@ public class LedgerAccount {
         }
     }
 
+    @Override
     public UUID getId() {
         return id;
+    }
+
+    /** The id is assigned by the application, so Spring Data cannot infer novelty from a null id. */
+    @Override
+    public boolean isNew() {
+        return !persisted;
+    }
+
+    @PostLoad
+    @PostPersist
+    void markPersisted() {
+        persisted = true;
     }
 
     public Currency getCurrency() {

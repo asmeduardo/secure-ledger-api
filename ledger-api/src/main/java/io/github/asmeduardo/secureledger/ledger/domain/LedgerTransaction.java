@@ -10,7 +10,10 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
+import jakarta.persistence.PostLoad;
+import jakarta.persistence.PostPersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Currency;
@@ -20,6 +23,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Persistable;
 
 /**
  * A posted double-entry transaction: at least two entries, in one currency, on distinct accounts,
@@ -29,7 +33,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "ledger_transaction", schema = "ledger")
-public class LedgerTransaction {
+public class LedgerTransaction implements Persistable<UUID> {
 
     public static final int MAX_REFERENCE_LENGTH = 140;
     public static final int MAX_INITIATOR_LENGTH = 100;
@@ -59,6 +63,9 @@ public class LedgerTransaction {
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.PERSIST)
     @OrderBy("id")
     private List<Entry> entries = new ArrayList<>();
+
+    @Transient
+    private boolean persisted;
 
     protected LedgerTransaction() {}
 
@@ -191,8 +198,21 @@ public class LedgerTransaction {
                 .toList();
     }
 
+    @Override
     public UUID getId() {
         return id;
+    }
+
+    /** The id is assigned by the application, so Spring Data cannot infer novelty from a null id. */
+    @Override
+    public boolean isNew() {
+        return !persisted;
+    }
+
+    @PostLoad
+    @PostPersist
+    void markPersisted() {
+        persisted = true;
     }
 
     public TransactionType getType() {
