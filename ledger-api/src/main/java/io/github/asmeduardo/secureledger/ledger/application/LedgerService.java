@@ -22,8 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -116,8 +114,17 @@ class LedgerService implements Ledger {
         return view(transactions.save(transaction));
     }
 
+    /**
+     * Customer accounts are locked, in a fixed order, before their balances are read; the balance
+     * check and the update then happen under the lock. Settlement accounts are only read: they keep
+     * no balance, so deposits and withdrawals of different accounts never wait for each other.
+     */
     private Map<UUID, LedgerAccount> load(List<UUID> ids) {
-        return accounts.findAllById(ids).stream().collect(Collectors.toMap(LedgerAccount::getId, Function.identity()));
+        var involved = new HashMap<UUID, LedgerAccount>();
+        accounts.lockCustomerAccounts(ids).forEach(account -> involved.put(account.getId(), account));
+        var others = ids.stream().filter(id -> !involved.containsKey(id)).toList();
+        accounts.findAllById(others).forEach(account -> involved.put(account.getId(), account));
+        return involved;
     }
 
     private UUID settlementAccountFor(Money amount) {
