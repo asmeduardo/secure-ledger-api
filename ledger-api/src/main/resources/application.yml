@@ -21,3 +21,5 @@ spring:
           # Tokens must carry this issuer, while the keys may be fetched from another address.
           issuer-uri: ${SECURE_LEDGER_ISSUER_URI:http://localhost:9000}
           jwk-set-uri: ${SECURE_LEDGER_JWK_SET_URI:${SECURE_LEDGER_ISSUER_URI:http://localhost:9000}/oauth2/jwks}
+          # Only tokens minted for this API are accepted, even if the issuer serves other APIs too.
+          audiences: secure-ledger-api
