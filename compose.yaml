@@ -1,0 +1,92 @@
+name: secure-ledger
+
+# Local environment: PostgreSQL, the development authorization server and the API with fictitious
+# demo data. Build the jars first (./mvnw -DskipTests package). Every service runs as an
+# unprivileged user; the application containers also run on a read-only file system without
+# Linux capabilities. Ports are published on 127.0.0.1 only.
+
+x-hardening: &hardening
+  read_only: true
+  tmpfs:
+    - /tmp
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    # The official image starts as root and then switches users; here it starts as postgres (uid 70).
+    user: postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ledger}
+      POSTGRES_USER: ${POSTGRES_USER:-ledger}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?copy .env.example to .env and set POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  dev-auth-server:
+    <<: *hardening
+    build:
+      context: .
+      args:
+        MODULE: dev-auth-server
+    image: secure-ledger/dev-auth-server:local
+    environment:
+      # Tokens carry this issuer whether they are requested from the host or from the API container.
+      SECURE_LEDGER_ISSUER_URI: http://localhost:9000
+      SECURE_LEDGER_WALLET_CLIENT_SECRET: ${SECURE_LEDGER_WALLET_CLIENT_SECRET:?set it in .env}
+      SECURE_LEDGER_MARKETPLACE_CLIENT_SECRET: ${SECURE_LEDGER_MARKETPLACE_CLIENT_SECRET:?set it in .env}
+      SECURE_LEDGER_AUDITOR_CLIENT_SECRET: ${SECURE_LEDGER_AUDITOR_CLIENT_SECRET:?set it in .env}
+    ports:
+      - "127.0.0.1:9000:9000"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:9000/oauth2/jwks"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  ledger-api:
+    <<: *hardening
+    build:
+      context: .
+      args:
+        MODULE: ledger-api
+    image: secure-ledger/ledger-api:local
+    depends_on:
+      postgres:
+        condition: service_healthy
+      dev-auth-server:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: demo
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-ledger}
+      POSTGRES_USER: ${POSTGRES_USER:-ledger}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?copy .env.example to .env and set POSTGRES_PASSWORD}
+      SECURE_LEDGER_ISSUER_URI: http://localhost:9000
+      # The keys are fetched over the compose network; the issuer above is only compared with iss.
+      SECURE_LEDGER_JWK_SET_URI: http://dev-auth-server:9000/oauth2/jwks
+      # Native Spring Boot structured logging: one JSON (Elastic Common Schema) object per line.
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+    ports:
+      - "127.0.0.1:${LEDGER_API_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/actuator/health/readiness"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  postgres-data:

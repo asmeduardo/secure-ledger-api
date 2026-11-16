@@ -30,6 +30,12 @@ jobs:
       - name: Verify
         run: ./mvnw -B -ntp verify
 
+      # Same images as compose.yaml, built from the jars the previous step packaged.
+      - name: Build container images
+        run: |
+          cp .env.example .env
+          docker compose build
+
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

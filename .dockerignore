@@ -1,0 +1,4 @@
+# The images only need the packaged jars; keep sources, secrets and build output out of the context.
+*
+!ledger-api/target/ledger-api-*.jar
+!dev-auth-server/target/dev-auth-server-*.jar
