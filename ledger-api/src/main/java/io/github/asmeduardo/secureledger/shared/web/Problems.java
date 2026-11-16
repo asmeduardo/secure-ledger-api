@@ -8,6 +8,7 @@ import org.springframework.http.ProblemDetail;
 public final class Problems {
 
     public static final String TYPE_PREFIX = "urn:secure-ledger:problem:";
+    public static final String MEDIA_TYPE = "application/problem+json";
 
     private Problems() {}
 

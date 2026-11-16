@@ -19,7 +19,8 @@ class SecurityConfiguration {
 
     @Bean
     SecurityFilterChain apiSecurity(HttpSecurity http, ProblemDetailsSecurityHandler problems) throws Exception {
-        http.authorizeHttpRequests(requests -> requests.requestMatchers("/error")
+        http.authorizeHttpRequests(requests -> requests.requestMatchers(
+                                "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/error")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/**")
                         .hasAuthority(Scopes.authority(Scopes.READ))

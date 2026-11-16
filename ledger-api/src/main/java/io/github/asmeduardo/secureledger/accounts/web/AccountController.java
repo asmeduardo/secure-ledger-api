@@ -4,6 +4,11 @@ import io.github.asmeduardo.secureledger.accounts.application.AccountService;
 import io.github.asmeduardo.secureledger.accounts.application.AccountView;
 import io.github.asmeduardo.secureledger.shared.security.ClientId;
 import io.github.asmeduardo.secureledger.shared.web.PageResponse;
+import io.github.asmeduardo.secureledger.shared.web.Problems;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -22,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/accounts")
+@Tag(name = "Accounts", description = "Accounts of the calling client and their balances")
 public class AccountController {
 
     private final AccountService accounts;
@@ -31,6 +37,12 @@ public class AccountController {
     }
 
     @PostMapping
+    @Operation(summary = "Open an account", description = "The account belongs to the client of the access token.")
+    @ApiResponse(responseCode = "201", description = "Account opened with a zero balance")
+    @ApiResponse(
+            responseCode = "400",
+            description = "Invalid request or unsupported currency",
+            content = @Content(mediaType = Problems.MEDIA_TYPE))
     public ResponseEntity<AccountView> open(
             @Valid @RequestBody OpenAccountRequest request, @AuthenticationPrincipal Jwt client) {
         var account = accounts.open(ClientId.of(client), request.name(), request.currency());
@@ -39,11 +51,17 @@ public class AccountController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get an account with its current balance")
+    @ApiResponse(
+            responseCode = "404",
+            description = "Unknown account or account of another client",
+            content = @Content(mediaType = Problems.MEDIA_TYPE))
     public AccountView get(@PathVariable UUID id, @AuthenticationPrincipal Jwt client) {
         return accounts.get(ClientId.of(client), id);
     }
 
     @GetMapping
+    @Operation(summary = "List the client's accounts, oldest first")
     public PageResponse<AccountView> list(
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
