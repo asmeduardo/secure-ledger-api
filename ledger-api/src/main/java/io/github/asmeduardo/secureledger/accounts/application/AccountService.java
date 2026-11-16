@@ -5,6 +5,9 @@ import io.github.asmeduardo.secureledger.accounts.api.OwnedAccounts;
 import io.github.asmeduardo.secureledger.accounts.domain.CustomerAccount;
 import io.github.asmeduardo.secureledger.accounts.domain.CustomerAccountRepository;
 import io.github.asmeduardo.secureledger.ledger.api.Ledger;
+import io.github.asmeduardo.secureledger.shared.idempotency.Idempotency;
+import io.github.asmeduardo.secureledger.shared.idempotency.IdempotentRequest;
+import io.github.asmeduardo.secureledger.shared.idempotency.IdempotentResult;
 import io.github.asmeduardo.secureledger.shared.money.Money;
 import io.github.asmeduardo.secureledger.shared.security.ClientId;
 import java.time.Clock;
@@ -25,21 +28,28 @@ public class AccountService implements OwnedAccounts {
 
     private final CustomerAccountRepository accounts;
     private final Ledger ledger;
+    private final Idempotency idempotency;
     private final Clock clock;
 
-    public AccountService(CustomerAccountRepository accounts, Ledger ledger, Clock clock) {
+    public AccountService(CustomerAccountRepository accounts, Ledger ledger, Idempotency idempotency, Clock clock) {
         this.accounts = accounts;
         this.ledger = ledger;
+        this.idempotency = idempotency;
         this.clock = clock;
     }
 
-    /** Opens an account owned by the client, with a zero balance in the given currency. */
-    @Transactional
-    public AccountView open(ClientId owner, String name, String currencyCode) {
-        var currency = Money.currency(currencyCode);
-        var account = accounts.save(new CustomerAccount(UUID.randomUUID(), owner.value(), name, clock.instant()));
-        ledger.openCustomerAccount(account.getId(), currency);
-        return view(account, Money.zero(currency));
+    /**
+     * Opens an account owned by the client, with a zero balance in the given currency. Idempotent per
+     * client and key; the transaction is opened by {@link Idempotency}.
+     */
+    public IdempotentResult<AccountView> open(ClientId owner, String key, String name, String currencyCode) {
+        var request = IdempotentRequest.of(owner, key, "OPEN_ACCOUNT", name, currencyCode);
+        return idempotency.execute(request, AccountView.class, () -> {
+            var currency = Money.currency(currencyCode);
+            var account = accounts.save(new CustomerAccount(UUID.randomUUID(), owner.value(), name, clock.instant()));
+            ledger.openCustomerAccount(account.getId(), currency);
+            return view(account, Money.zero(currency));
+        });
     }
 
     @Transactional(readOnly = true)

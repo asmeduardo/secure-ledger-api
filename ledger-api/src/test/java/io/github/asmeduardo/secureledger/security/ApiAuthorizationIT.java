@@ -7,6 +7,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 
 import io.github.asmeduardo.secureledger.support.IntegrationTest;
+import io.github.asmeduardo.secureledger.support.LedgerApi;
 import io.github.asmeduardo.secureledger.support.Tokens;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,6 +63,7 @@ class ApiAuthorizationIT {
         assertThat(mvc.post()
                         .uri("/api/v1/accounts")
                         .with(Tokens.client("reader", READ))
+                        .header("Idempotency-Key", LedgerApi.newKey())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(ACCOUNT))
                 .hasStatus(HttpStatus.FORBIDDEN)
@@ -75,6 +77,7 @@ class ApiAuthorizationIT {
         assertThat(mvc.post()
                         .uri("/api/v1/accounts")
                         .with(Tokens.client("writer", OPERATE))
+                        .header("Idempotency-Key", LedgerApi.newKey())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(ACCOUNT))
                 .hasStatus(HttpStatus.CREATED);

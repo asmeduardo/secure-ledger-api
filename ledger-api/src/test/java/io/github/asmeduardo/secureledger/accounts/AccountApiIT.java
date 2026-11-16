@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.github.asmeduardo.secureledger.ledger.api.Ledger;
 import io.github.asmeduardo.secureledger.shared.money.Money;
 import io.github.asmeduardo.secureledger.support.IntegrationTest;
+import io.github.asmeduardo.secureledger.support.LedgerApi;
 import io.github.asmeduardo.secureledger.support.Tokens;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -98,6 +99,7 @@ class AccountApiIT {
     void reportsEveryInvalidFieldAtOnce() {
         var response = mvc.post()
                 .uri("/api/v1/accounts")
+                .header("Idempotency-Key", LedgerApi.newKey())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"name": " ", "currency": "real"}
@@ -125,6 +127,7 @@ class AccountApiIT {
     void malformedJsonIsAProblemToo() {
         assertThat(mvc.post()
                         .uri("/api/v1/accounts")
+                        .header("Idempotency-Key", LedgerApi.newKey())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{"))
                 .hasStatus(HttpStatus.BAD_REQUEST)
@@ -137,6 +140,7 @@ class AccountApiIT {
         return mvc.post()
                 .uri("/api/v1/accounts")
                 .with(token)
+                .header("Idempotency-Key", LedgerApi.newKey())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"name": "%s", "currency": "%s"}
