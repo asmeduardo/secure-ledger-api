@@ -3,6 +3,7 @@ package io.github.asmeduardo.secureledger.ledger.api;
 import io.github.asmeduardo.secureledger.shared.money.Money;
 import java.util.Collection;
 import java.util.Currency;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,4 +32,10 @@ public interface Ledger {
     PostedTransaction reverse(UUID transactionId, String initiatedBy, String reference);
 
     Optional<PostedTransaction> find(UUID transactionId);
+
+    /**
+     * Entries of a customer account posted strictly before the given entry id, newest first. Because
+     * entries are append-only and their ids only grow per account, a page never changes once read.
+     */
+    List<StatementLine> statement(UUID accountId, long beforeEntryId, int limit);
 }
