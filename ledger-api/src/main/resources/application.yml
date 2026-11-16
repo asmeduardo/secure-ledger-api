@@ -23,3 +23,8 @@ spring:
           jwk-set-uri: ${SECURE_LEDGER_JWK_SET_URI:${SECURE_LEDGER_ISSUER_URI:http://localhost:9000}/oauth2/jwks}
           # Only tokens minted for this API are accepted, even if the issuer serves other APIs too.
           audiences: secure-ledger-api
+
+secure-ledger:
+  reconciliation:
+    # Daily at 03:30 UTC. Spring cron: second minute hour day-of-month month day-of-week.
+    cron: ${SECURE_LEDGER_RECONCILIATION_CRON:0 30 3 * * *}
