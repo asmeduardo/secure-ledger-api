@@ -5,15 +5,18 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 
 /**
  * Boots the full application against a real PostgreSQL started by Testcontainers. Every test
  * annotated with it shares one cached application context, and therefore one database: tests create
- * their own accounts and never assume empty tables.
+ * their own accounts and never assume empty tables. The auto-configured {@code MockMvc} sends a
+ * read-and-operate token on every request (see {@link DefaultTokenConfiguration}).
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @SpringBootTest
-@Import(PostgresTestConfiguration.class)
+@AutoConfigureMockMvc
+@Import({PostgresTestConfiguration.class, DefaultTokenConfiguration.class})
 public @interface IntegrationTest {}

@@ -13,3 +13,11 @@ spring:
     hibernate:
       # Flyway owns the schema; Hibernate only checks that the mapping matches it.
       ddl-auto: validate
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Keys are fetched lazily from the JWKS endpoint, so the API starts even if the issuer is down.
+          # Tokens must carry this issuer, while the keys may be fetched from another address.
+          issuer-uri: ${SECURE_LEDGER_ISSUER_URI:http://localhost:9000}
+          jwk-set-uri: ${SECURE_LEDGER_JWK_SET_URI:${SECURE_LEDGER_ISSUER_URI:http://localhost:9000}/oauth2/jwks}
