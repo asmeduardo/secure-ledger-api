@@ -8,9 +8,12 @@ import io.github.asmeduardo.secureledger.ledger.api.Ledger;
 import io.github.asmeduardo.secureledger.shared.money.Money;
 import io.github.asmeduardo.secureledger.shared.security.ClientId;
 import java.time.Clock;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -58,6 +61,14 @@ public class AccountService implements OwnedAccounts {
     @Transactional(readOnly = true)
     public void requireOwnedBy(ClientId client, UUID accountId) {
         owned(client, accountId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<UUID> ownedAmong(ClientId client, Collection<UUID> accountIds) {
+        return accounts.findByOwnerIdAndIdIn(client.value(), accountIds).stream()
+                .map(CustomerAccount::getId)
+                .collect(Collectors.toSet());
     }
 
     private CustomerAccount owned(ClientId owner, UUID id) {

@@ -1,5 +1,7 @@
 package io.github.asmeduardo.secureledger.accounts.domain;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -12,4 +14,6 @@ public interface CustomerAccountRepository extends JpaRepository<CustomerAccount
     Optional<CustomerAccount> findByIdAndOwnerId(UUID id, String ownerId);
 
     Page<CustomerAccount> findByOwnerId(String ownerId, Pageable pageable);
+
+    List<CustomerAccount> findByOwnerIdAndIdIn(String ownerId, Collection<UUID> ids);
 }
