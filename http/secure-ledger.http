@@ -1,0 +1,165 @@
+### Secure Ledger API examples
+# Works with the IntelliJ HTTP Client and the VS Code REST Client extension.
+# Start the stack first (see README). The demo profile loads fictitious accounts with fixed ids.
+# Run the requests from top to bottom.
+
+@baseUrl = http://localhost:8080
+@authUrl = http://localhost:9000
+# Client secrets as in your .env (the values of .env.example are already filled in).
+@walletSecret = local-dev-only-wallet
+@marketplaceSecret = local-dev-only-marketplace
+@auditorSecret = local-dev-only-auditor
+# Paste the access_token returned by the token requests below; do not commit real tokens.
+@walletToken =
+@auditorToken =
+@marketplaceToken =
+# Fictitious demo accounts: Ana and Bruno belong to demo-wallet, the third one to demo-marketplace.
+@ana = a1000000-0000-4000-8000-000000000001
+@bruno = a1000000-0000-4000-8000-000000000002
+@marketplaceAccount = b2000000-0000-4000-8000-000000000001
+# Paste the id of a transaction returned below to read or reverse it.
+@transactionId =
+# Use a fresh value for every new operation; repeat it only to retry the same operation.
+@transferKey = 7f3c2a10-5b8e-4d21-9c6f-1e2d3c4b5a60
+
+### Token of demo-wallet (scopes ledger.read and ledger.operate)
+POST {{authUrl}}/oauth2/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials&scope=ledger.read%20ledger.operate&client_id=demo-wallet&client_secret={{walletSecret}}
+
+### Read-only token of demo-wallet: writes with it answer 403
+POST {{authUrl}}/oauth2/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials&scope=ledger.read&client_id=demo-wallet&client_secret={{walletSecret}}
+
+### Token of demo-auditor (scope ledger.audit: whole audit trail and reconciliation)
+POST {{authUrl}}/oauth2/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials&scope=ledger.audit&client_id=demo-auditor&client_secret={{auditorSecret}}
+
+### Token of demo-marketplace, another client
+POST {{authUrl}}/oauth2/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials&scope=ledger.read%20ledger.operate&client_id=demo-marketplace&client_secret={{marketplaceSecret}}
+
+### Accounts of demo-wallet with their balances
+GET {{baseUrl}}/api/v1/accounts
+Authorization: Bearer {{walletToken}}
+
+### Transfer 150.00 from Ana to Bruno
+POST {{baseUrl}}/api/v1/transfers
+Authorization: Bearer {{walletToken}}
+Content-Type: application/json
+Idempotency-Key: {{transferKey}}
+
+{
+  "sourceAccountId": "{{ana}}",
+  "destinationAccountId": "{{bruno}}",
+  "amount": "150.00",
+  "currency": "BRL",
+  "reference": "Divisao do aluguel"
+}
+
+### Retry with the same key and body: same response, Idempotent-Replayed: true, no second movement
+POST {{baseUrl}}/api/v1/transfers
+Authorization: Bearer {{walletToken}}
+Content-Type: application/json
+Idempotency-Key: {{transferKey}}
+
+{
+  "sourceAccountId": "{{ana}}",
+  "destinationAccountId": "{{bruno}}",
+  "amount": "150.00",
+  "currency": "BRL",
+  "reference": "Divisao do aluguel"
+}
+
+### Same key with another amount: 422 idempotency-key-reused
+POST {{baseUrl}}/api/v1/transfers
+Authorization: Bearer {{walletToken}}
+Content-Type: application/json
+Idempotency-Key: {{transferKey}}
+
+{
+  "sourceAccountId": "{{ana}}",
+  "destinationAccountId": "{{bruno}}",
+  "amount": "151.00",
+  "currency": "BRL"
+}
+
+### Audit trail of demo-wallet: SUCCEEDED, REPLAYED and REJECTED for the same key
+GET {{baseUrl}}/api/v1/audit-events?limit=10
+Authorization: Bearer {{walletToken}}
+
+### Withdrawal beyond the balance: 422 insufficient-funds, nothing moves
+POST {{baseUrl}}/api/v1/withdrawals
+Authorization: Bearer {{walletToken}}
+Content-Type: application/json
+Idempotency-Key: 2b9d4e61-0c7a-4f38-8e15-6a3b2c1d0e94
+
+{
+  "accountId": "{{bruno}}",
+  "amount": "100000.00",
+  "currency": "BRL"
+}
+
+### Deposit into Bruno's account
+POST {{baseUrl}}/api/v1/deposits
+Authorization: Bearer {{walletToken}}
+Content-Type: application/json
+Idempotency-Key: 9a1e5c3b-7d2f-4b60-a8c4-3f0e1d2c5b77
+
+{
+  "accountId": "{{bruno}}",
+  "amount": "35.50",
+  "currency": "BRL",
+  "reference": "Recarga ficticia"
+}
+
+### Statement of Ana, newest first; pass nextCursor back as ?cursor= for older entries
+GET {{baseUrl}}/api/v1/accounts/{{ana}}/entries?limit=20
+Authorization: Bearer {{walletToken}}
+
+### Statement of a period as CSV (oldest first); adjust the dates to include today
+GET {{baseUrl}}/api/v1/accounts/{{ana}}/statement.csv?from=2026-01-01T00:00:00Z&to=2027-01-01T00:00:00Z
+Authorization: Bearer {{walletToken}}
+
+### A transaction with its entries
+GET {{baseUrl}}/api/v1/transactions/{{transactionId}}
+Authorization: Bearer {{walletToken}}
+
+### Reverse it: posts the opposite entries; a second reversal answers 409 already-reversed
+POST {{baseUrl}}/api/v1/transactions/{{transactionId}}/reversal
+Authorization: Bearer {{walletToken}}
+Content-Type: application/json
+Idempotency-Key: 4c8f2a17-3e6b-4d95-b0a2-7e1f9c3d5a28
+
+{
+  "reference": "Lancado em duplicidade"
+}
+
+### demo-wallet cannot see the account of demo-marketplace: 404, as if it did not exist
+GET {{baseUrl}}/api/v1/accounts/{{marketplaceAccount}}
+Authorization: Bearer {{walletToken}}
+
+### demo-marketplace sees its own account
+GET {{baseUrl}}/api/v1/accounts/{{marketplaceAccount}}
+Authorization: Bearer {{marketplaceToken}}
+
+### Back office: every client's audit events
+GET {{baseUrl}}/api/v1/admin/audit-events?limit=20
+Authorization: Bearer {{auditorToken}}
+
+### Back office: reconcile balances and transactions against the entries
+POST {{baseUrl}}/api/v1/admin/reconciliations
+Authorization: Bearer {{auditorToken}}
+
+### Health and metrics (no token)
+GET {{baseUrl}}/actuator/health
+
+###
+GET {{baseUrl}}/actuator/prometheus
