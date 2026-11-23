@@ -16,7 +16,7 @@ x-hardening: &hardening
 
 services:
   postgres:
-    image: postgres:18-alpine
+    image: postgres:19-alpine
     # The official image starts as root and then switches users; here it starts as postgres (uid 70).
     user: postgres
     environment:
